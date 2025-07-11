@@ -1,0 +1,239 @@
+#include <iostream>
+#include <stack>
+#include <queue>
+#include <list>
+#include <vector>
+#include <chrono>
+#include <fstream>
+#include <algorithm>
+#include <random>
+#include <string>
+using namespace std;
+using namespace std::chrono;
+
+struct Nodo {
+    int valor;
+    Nodo* izq;
+    Nodo* der;
+    Nodo(int v) : valor(v), izq(nullptr), der(nullptr) {}
+};
+
+class ArbolBinario {
+public:
+    Nodo* raiz = nullptr;
+
+    void insertar(int valor) {
+        raiz = insertarRec(raiz, valor);
+    }
+
+    bool buscar(int valor) {
+        return buscarRec(raiz, valor);
+    }
+
+    void eliminar(int valor) {
+        raiz = eliminarRec(raiz, valor);
+    }
+
+    void actualizar(int viejo, int nuevo) {
+        eliminar(viejo);
+        insertar(nuevo);
+    }
+
+private:
+    Nodo* insertarRec(Nodo* nodo, int valor) {
+        if (!nodo) return new Nodo(valor);
+        if (valor < nodo->valor) nodo->izq = insertarRec(nodo->izq, valor);
+        else nodo->der = insertarRec(nodo->der, valor);
+        return nodo;
+    }
+
+    Nodo* eliminarRec(Nodo* nodo, int valor) {
+        if (!nodo) return nullptr;
+        if (valor < nodo->valor) nodo->izq = eliminarRec(nodo->izq, valor);
+        else if (valor > nodo->valor) nodo->der = eliminarRec(nodo->der, valor);
+        else {
+            if (!nodo->izq) return nodo->der;
+            if (!nodo->der) return nodo->izq;
+            Nodo* temp = minValor(nodo->der);
+            nodo->valor = temp->valor;
+            nodo->der = eliminarRec(nodo->der, temp->valor);
+        }
+        return nodo;
+    }
+
+    Nodo* minValor(Nodo* nodo) {
+        while (nodo && nodo->izq) nodo = nodo->izq;
+        return nodo;
+    }
+
+    bool buscarRec(Nodo* nodo, int valor) {
+        if (!nodo) return false;
+        if (valor == nodo->valor) return true;
+        if (valor < nodo->valor) return buscarRec(nodo->izq, valor);
+        return buscarRec(nodo->der, valor);
+    }
+};
+
+// Función para medir tiempo de ejecución de operaciones
+template <typename Func>
+double medirTiempo(Func func) {
+    auto inicio = high_resolution_clock::now();
+    func();
+    auto fin = high_resolution_clock::now();
+    chrono::duration<double> duracion = fin - inicio;
+    return duracion.count() * 1000; // Retorna el tiempo en milisegundos
+}
+
+// Función para realizar la prueba T (esto es solo un ejemplo de cómo puedes calcular la T)
+void realizarPruebaT(double pila, double cola, double lista, double arbol) {
+    cout << "Prueba T entre estructuras:" << endl;
+    cout << "Pila vs Cola: " << pila << " vs " << cola << endl;
+    cout << "Pila vs Lista: " << pila << " vs " << lista << endl;
+    cout << "Pila vs Árbol: " << pila << " vs " << arbol << endl;
+}
+
+void medirYGuardar(const string& estructura, int N, ofstream& archivo) {
+    vector<int> datos(N);
+    iota(datos.begin(), datos.end(), 1);
+    shuffle(datos.begin(), datos.end(), default_random_engine(random_device{}()));
+
+    double t_insert = 0, t_busq = 0, t_elim = 0, t_actual = 0;
+
+    // Definimos las operaciones de la estructura
+    if (estructura == "Pila") {
+        stack<int> pila;
+        auto ini = high_resolution_clock::now();
+        for (int x : datos) pila.push(x);
+        auto fin = high_resolution_clock::now();
+        t_insert = duration<double, milli>(fin - ini).count();
+
+        ini = high_resolution_clock::now();
+        for (int x : datos) if (pila.top() == x) break;
+        fin = high_resolution_clock::now();
+        t_busq = duration<double, milli>(fin - ini).count();
+
+        ini = high_resolution_clock::now();
+        while (!pila.empty()) pila.pop();
+        fin = high_resolution_clock::now();
+        t_elim = duration<double, milli>(fin - ini).count();
+
+        pila.push(999);
+        ini = high_resolution_clock::now();
+        pila.top() = 1000;
+        fin = high_resolution_clock::now();
+        t_actual = duration<double, milli>(fin - ini).count();
+    }
+    else if (estructura == "Cola") {
+        queue<int> cola;
+        auto ini = high_resolution_clock::now();
+        for (int x : datos) cola.push(x);
+        auto fin = high_resolution_clock::now();
+        t_insert = duration<double, milli>(fin - ini).count();
+
+        ini = high_resolution_clock::now();
+        for (int x : datos) if (cola.front() == x) break;
+        fin = high_resolution_clock::now();
+        t_busq = duration<double, milli>(fin - ini).count();
+
+        ini = high_resolution_clock::now();
+        while (!cola.empty()) cola.pop();
+        fin = high_resolution_clock::now();
+        t_elim = duration<double, milli>(fin - ini).count();
+
+        cola.push(999);
+        ini = high_resolution_clock::now();
+        int temp = cola.front(); cola.pop(); cola.push(1000);
+        fin = high_resolution_clock::now();
+        t_actual = duration<double, milli>(fin - ini).count();
+    }
+    else if (estructura == "Lista") {
+        list<int> lista;
+        auto ini = high_resolution_clock::now();
+        for (int x : datos) lista.push_back(x);
+        auto fin = high_resolution_clock::now();
+        t_insert = duration<double, milli>(fin - ini).count();
+
+        ini = high_resolution_clock::now();
+        find(lista.begin(), lista.end(), datos[N / 2]);
+        fin = high_resolution_clock::now();
+        t_busq = duration<double, milli>(fin - ini).count();
+
+        ini = high_resolution_clock::now();
+        lista.clear();
+        fin = high_resolution_clock::now();
+        t_elim = duration<double, milli>(fin - ini).count();
+
+        lista.push_back(999);
+        ini = high_resolution_clock::now();
+        lista.back() = 1000;
+        fin = high_resolution_clock::now();
+        t_actual = duration<double, milli>(fin - ini).count();
+    }
+    else if (estructura == "Arbol") {
+        ArbolBinario arbol;
+        auto ini = high_resolution_clock::now();
+        for (int x : datos) arbol.insertar(x);
+        auto fin = high_resolution_clock::now();
+        t_insert = duration<double, milli>(fin - ini).count();
+
+        ini = high_resolution_clock::now();
+        arbol.buscar(datos[N / 2]);
+        fin = high_resolution_clock::now();
+        t_busq = duration<double, milli>(fin - ini).count();
+
+        ini = high_resolution_clock::now();
+        for (int x : datos) arbol.eliminar(x);
+        fin = high_resolution_clock::now();
+        t_elim = duration<double, milli>(fin - ini).count();
+
+        arbol.insertar(999);
+        ini = high_resolution_clock::now();
+        arbol.actualizar(999, 1000);
+        fin = high_resolution_clock::now();
+        t_actual = duration<double, milli>(fin - ini).count();
+    }
+
+    // Guardar los resultados en el archivo CSV
+    archivo << estructura << "," << t_insert << "," << t_busq << "," << t_elim << "," << t_actual << ",";
+    
+    // Agregar la complejidad en cada operación (teórica)
+    if (estructura == "Pila") {
+        archivo << "O(1), O(n), O(1), O(1)\n";
+    } else if (estructura == "Cola") {
+        archivo << "O(1), O(n), O(1), O(1)\n";
+    } else if (estructura == "Lista") {
+        archivo << "O(1), O(n), O(n), O(n)\n";
+    } else if (estructura == "Arbol") {
+        archivo << "O(log n), O(log n), O(log n), O(log n)\n";
+    }
+}
+
+int main() {
+    int N;
+    int repeticiones = 5;
+
+    // Crear archivo CSV con resultados generales
+    ofstream archivo("resultados_repetidos.csv");
+    archivo << "Estructura,Insercion,Busqueda,Eliminacion,Actualizacion,Complejidad Insercion,Complejidad Busqueda,Complejidad Eliminacion,Complejidad Actualizacion\n";
+
+    for (int i = 0; i < repeticiones; ++i) {
+        cout << "Ingrese el tamaño de los datos para la prueba #" << i + 1 << " (Ejemplo: 100, 1000, 10000): ";
+        cin >> N;
+
+        if (N <= 0) {
+            cout << "Tamaño inválido. Debe ser mayor que 0." << endl;
+            continue;
+        }
+
+        // Llamar a la función para medir y guardar los resultados
+        medirYGuardar("Pila", N, archivo);
+        medirYGuardar("Cola", N, archivo);
+        medirYGuardar("Lista", N, archivo);
+        medirYGuardar("Arbol", N, archivo);
+    }
+
+    archivo.close();
+    cout << "Pruebas completadas y guardadas en resultados_repetidos.csv ✅" << endl;
+
+    return 0;
+}
